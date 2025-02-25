@@ -975,6 +975,46 @@ impl Wallet {
         Ok(())
     }
 
+    pub fn manual_coin_select(
+        &self,
+        amount: Amount,
+        utxos: Vec<(Txid, u32)>,
+    ) -> Result<Vec<(ListUnspentResultEntry, UTXOSpendInfo)>, WalletError> {
+        let all_utxos = self.get_all_locked_utxo()?;
+
+        // Find the common element between the selected utxos by the user and all the utxos available
+        let all_utxos: Vec<ListUnspentResultEntry> = all_utxos
+            .iter()
+            .filter(|entry| utxos.contains(&(entry.txid, entry.vout)))
+            .cloned()
+            .collect();
+
+        let mut seed_coin_utxo = self.list_descriptor_utxo_spend_info(Some(&all_utxos))?;
+        let mut swap_coin_utxo = self.list_incoming_swap_coin_utxo_spend_info(Some(&all_utxos))?;
+        seed_coin_utxo.append(&mut swap_coin_utxo);
+
+        // Fetch utxos, filter out existing fidelity coins
+        let unspents = seed_coin_utxo
+            .into_iter()
+            .filter(|(_, spend_info)| !matches!(spend_info, UTXOSpendInfo::FidelityBondCoin { .. }))
+            .collect::<Vec<_>>();
+
+        let mut selected_utxo = Vec::new();
+        let mut remaining = amount;
+
+        for unspent in unspents {
+            if remaining.checked_sub(unspent.0.amount).is_none() {
+                selected_utxo.push(unspent);
+                break;
+            } else {
+                remaining -= unspent.0.amount;
+                selected_utxo.push(unspent);
+            }
+        }
+
+        Ok(selected_utxo)
+    }
+
     /// Largerst to lowest coinselect algorithm
     pub fn coin_select(
         &self,
