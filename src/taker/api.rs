@@ -8,6 +8,7 @@
 //!
 //! [Taker::do_coinswap]: The routine running all other protocol subroutines.
 
+use rand::Rng;
 use std::{
     collections::{HashMap, HashSet},
     io::BufWriter,
@@ -502,6 +503,7 @@ impl Taker {
                     &maker.offer.tweakable_point,
                     self.ongoing_swap_state.swap_params.tx_count,
                 )?;
+            let random_fee = randomize_fee(MINER_FEE);
             let (funding_txs, mut outgoing_swapcoins, funding_fee) =
                 self.wallet.initalize_coinswap(
                     self.ongoing_swap_state.swap_params.send_amount,
@@ -509,7 +511,7 @@ impl Taker {
                     &hashlock_pubkeys,
                     self.get_preimage_hash(),
                     swap_locktime,
-                    Amount::from_sat(MINER_FEE),
+                    Amount::from_sat(random_fee),
                 )?;
 
             let contract_reedemscripts = outgoing_swapcoins
@@ -2136,4 +2138,11 @@ impl Taker {
             offer_and_address.address
         )
     }
+}
+
+fn randomize_fee(amount: u64) -> u64 {
+    let mut rng = rand::rng();
+    let percentage: f64 = rng.random_range(-0.05..=0.05);
+    let variation = (amount as f64 * percentage).round() as i64;
+    (amount as i64 + variation).max(0) as u64
 }
