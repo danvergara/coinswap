@@ -50,6 +50,10 @@ struct Cli {
     #[clap(long, short = 'v', possible_values = &["off", "error", "warn", "info", "debug", "trace"], default_value = "info")]
     pub verbosity: String,
 
+    /// Randomize the founding transaction fees for better privacy (+/- 5%)
+    #[clap(name = "randomize-fee", long)]
+    random_fee: bool,
+
     /// List of commands for various wallet operations
     #[clap(subcommand)]
     command: Commands,
@@ -103,6 +107,9 @@ enum Commands {
         // /// Increasing this number also increases total swap fee.
         // #[clap(long, short = 'u', default_value = "1")]
         // utxos: u32,
+        /// Randomize the amount to spend to reduce amount correlation (+/- 5%)
+        #[clap(long, short = 'r')]
+        random_amount: bool,
     },
     /// Recover from all failed swaps
     Recover,
@@ -139,6 +146,7 @@ fn main() -> Result<(), TakerError> {
         None,
         None,
         Some(connection_type),
+        args.random_fee,
     )?;
 
     match args.command {
@@ -232,10 +240,17 @@ fn main() -> Result<(), TakerError> {
                 .iter()
                 .for_each(|offer| println!("{}", taker.display_offer(offer)));
         }
-        Commands::Coinswap { makers, amount } => {
-            let random_amount = randomize_amount(amount);
+        Commands::Coinswap {
+            makers,
+            amount,
+            random_amount,
+        } => {
+            let mut amount_to_spend = amount;
+            if random_amount {
+                amount_to_spend = randomize_amount(amount);
+            }
             let swap_params = SwapParams {
-                send_amount: Amount::from_sat(random_amount),
+                send_amount: Amount::from_sat(amount_to_spend),
                 maker_count: makers,
                 tx_count: 1,
                 required_confirms: REQUIRED_CONFIRMS,
