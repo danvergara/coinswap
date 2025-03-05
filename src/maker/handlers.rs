@@ -7,7 +7,11 @@
 //! The file includes functions to validate and sign contract transactions, verify proof of funding, and handle unexpected recovery scenarios.
 //! Implements the core functionality for a Maker in a Bitcoin coinswap protocol.
 
-use std::{collections::HashMap, sync::atomic::Ordering::Relaxed, sync::Arc, time::Instant};
+use std::{
+    collections::HashMap,
+    sync::{atomic::Ordering::Relaxed, Arc},
+    time::Instant,
+};
 
 use bitcoin::{
     hashes::Hash,
