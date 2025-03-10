@@ -80,7 +80,6 @@ pub(crate) const MINER_FEE: u64 = 1000;
 /// This fee is used for both funding and contract txs.
 #[cfg(not(feature = "integration-test"))]
 pub(crate) const MINER_FEE: u64 = 300; // around 2 sats/vb for funding tx
-
 /// Swap specific parameters. These are user's policy and can differ among swaps.
 /// SwapParams govern the criteria to find suitable set of makers from the offerbook.
 ///
@@ -307,20 +306,35 @@ impl Taker {
         let self_arc = Arc::new(Mutex::new(self));
 
         thread::scope(|scope| {
+            let mut handles = Vec::with_capacity(branches as usize);
+
             for _ in 0..branches {
                 let swap_params = Arc::clone(&swap_params);
-
                 let self_arc = Arc::clone(&self_arc);
-                scope.spawn(move || {
+
+                handles.push(scope.spawn(move || {
                     let mut locked_swap_params = swap_params.lock().unwrap();
                     locked_swap_params.send_amount /= branches.into();
                     let mut locked_self = self_arc.lock().unwrap(); // Lock before using
-                    let _ = locked_self.send_coinswap(*locked_swap_params);
-                });
+                    locked_self.send_coinswap(*locked_swap_params)
+                }));
             }
-        });
 
-        Ok(())
+            for handle in handles {
+                match handle.join() {
+                    Err(_panic) => {
+                        // Handle a thread panic (shouldn't happen normally)
+                        return Err(TakerError::ThreadPanicked);
+                    }
+                    Ok(Err(err)) => {
+                        // Extract and return the actual `TakerError`
+                        return Err(err);
+                    }
+                    Ok(Ok(())) => continue, // Thread succeeded, continue
+                }
+            }
+            Ok(())
+        })
     }
 
     /// Perform a coinswap round with given [SwapParams]. The Taker will try to perform swap with makers
