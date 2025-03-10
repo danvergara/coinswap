@@ -94,6 +94,8 @@ pub struct SwapParams {
     // TODO: Following two should be moved to TakerConfig as global configuration.
     /// Confirmation count required for funding txs.
     pub required_confirms: u32,
+    /// How many branches
+    pub branches: u32,
 }
 
 // Defines the Taker's position in the current ongoing swap.
