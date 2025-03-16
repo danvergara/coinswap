@@ -302,6 +302,7 @@ impl Taker {
     ///  Does the coinswap process
     pub fn do_coinswap(&mut self, swap_params: SwapParams) -> Result<(), TakerError> {
         let branches = swap_params.branches;
+        let amount: Amount = swap_params.send_amount / branches as u64;
         let swap_params = Arc::new(Mutex::new(swap_params)); // Use Arc if swap_params is expensive to clone
         let self_arc = Arc::new(Mutex::new(self));
 
@@ -314,7 +315,7 @@ impl Taker {
 
                 handles.push(scope.spawn(move || {
                     let mut locked_swap_params = swap_params.lock().unwrap();
-                    locked_swap_params.send_amount /= branches.into();
+                    locked_swap_params.send_amount = amount;
                     let mut locked_self = self_arc.lock().unwrap(); // Lock before using
                     locked_self.send_coinswap(*locked_swap_params)
                 }));

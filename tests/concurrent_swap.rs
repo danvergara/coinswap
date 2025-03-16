@@ -127,25 +127,37 @@ fn test_concurrent_coinswap() {
     // | Participant    | Amount Received (Sats) | Amount Forwarded (Sats) | Fee (Sats) | Funding Mining Fees (Sats) | Total Fees (Sats) |
     // |----------------|------------------------|-------------------------|------------|----------------------------|-------------------|
     // | **Taker**      | _                      | 250,000                 | _          | 3,000                      | 3,000             |
-    // | **Maker16102** | 250,000                | 229,750                 | 17,250     | 3,000                      | 20,250            |
-    // | **Maker6102**  | 229,750                | 215,411                 | 11,339     | 3,000                      | 14,339            |
+    // | **1st Maker**  | 250,000                | 229,750                 | 17,250     | 3,000                      | 20,250            |
+    // | **2nd Maker**  | 229,750                | 215,411                 | 11,339     | 3,000                      | 14,339            |
     // Branch 2
     //
     // | Participant    | Amount Received (Sats) | Amount Forwarded (Sats) | Fee (Sats) | Funding Mining Fees (Sats) | Total Fees (Sats) |
     // |----------------|------------------------|-------------------------|------------|----------------------------|-------------------|
     // | **Taker**      | _                      | 250,000                 | _          | 3,000                      | 3,000             |
-    // | **Maker36102** | 250,000                | 229,750                 | 17,250     | 3,000                      | 20,250            |
-    // | **Maker26102** | 229,750                | 215,411                 | 11,339     | 3,000                      | 14,339            |
+    // | **1st Maker**  | 250,000                | 229,750                 | 17,250     | 3,000                      | 20,250            |
+    // | **2nd Maker**  | 229,750                | 215,411                 | 11,339     | 3,000                      | 14,339            |
     //
     // ## 3. Final Outcome for Taker (Successful Coinswap):
     //
     // | Participant   | Coinswap Outcome (Sats)                                                     |
     // |---------------|-----------------------------------------------------------------------------|
-    // | **Taker**     | 215,411 = 250,000 - (Total Fees for Maker16102 + Total Fees for Maker6102)  |
-    // | **Taker**     | 215,411 = 250,000 - (Total Fees for Maker36102 + Total Fees for Maker26102) |
+    // | **Taker**     | 215,411 = 250,000 - (Total Fees for Maker16102 + Total Fees for 1st Maker)  |
+    // | **Taker**     | 215,411 = 250,000 - (Total Fees for Maker36102 + Total Fees for 2nd Maker)  |
     // |   Total       | 430,822                                                                     |
     //
+    // ## 4. Final Outcome for Makers (thi is the same for every concurrent swap):
+    //
+    // | Participant    | Coinswap Outcome (Sats)                                           |
+    // |----------------|-------------------------------------------------------------------|
+    // | **1st Maker**  | 250,000 - 229,750 - 3,000 = +17,250                               |
+    // | **2nd Maker**  | 229,750 - 215,411 - 3,000 = +11,339                               |
 
+    verify_concurrent_swap_results(
+        &taker,
+        &makers,
+        org_taker_spend_balance,
+        org_maker_spend_balances,
+    );
     info!("Balance check successful.");
 
     // Check spending from swapcoins.
@@ -174,7 +186,7 @@ fn test_concurrent_coinswap() {
     let balances = taker_wallet_mut.get_balances(None).unwrap();
 
     assert_eq!(balances.swap, Amount::ZERO);
-    assert_eq!(balances.regular, Amount::from_btc(0.14937206).unwrap());
+    assert_eq!(balances.regular, Amount::from_btc(0.14923822).unwrap());
 
     info!("All checks successful. Terminating integration test case");
 
