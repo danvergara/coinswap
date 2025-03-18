@@ -105,6 +105,9 @@ enum Commands {
         // utxos: u32,
         /// Sets the amount of branches or concurrent coinswaps for better privacy.
         branches: u32,
+        /// Sets how may transactions the amount sent will be divided.
+        #[clap(long, short = 'c', default_value = "1")]
+        tx_count: u32,
     },
     /// Recover from all failed swaps
     Recover,
@@ -238,11 +241,12 @@ fn main() -> Result<(), TakerError> {
             makers,
             amount,
             branches,
+            tx_count,
         } => {
             let swap_params = SwapParams {
                 send_amount: Amount::from_sat(amount),
                 maker_count: makers,
-                tx_count: 1,
+                tx_count,
                 required_confirms: REQUIRED_CONFIRMS,
                 branches,
             };
