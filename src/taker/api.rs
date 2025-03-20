@@ -8,12 +8,12 @@
 //!
 //! [Taker::do_coinswap]: The routine running all other protocol subroutines.
 
-use std::sync::{Arc, Mutex};
 use std::{
     collections::{HashMap, HashSet},
     io::BufWriter,
     net::TcpStream,
     path::PathBuf,
+    sync::{Arc, Mutex},
     thread,
     thread::sleep,
     time::{Duration, Instant},
